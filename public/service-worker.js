@@ -1,5 +1,4 @@
 const FILES_TO_CACHE = [
-  "/",
   "./index.html",
   "./css/styles.css",
   "./icons/icon-72x72.png",
@@ -11,12 +10,10 @@ const FILES_TO_CACHE = [
   "./icons/icon-384x384.png",
   "./icons/icon-512x512.png",
   "./js/index.js",
-  "./manifest.json",
-  "../routes/api.js",
 ];
 
 const APP_PREFIX = "BudgetTracker-";
-const VERSION = "version_02";
+const VERSION = "version_01";
 const CACHE_NAME = APP_PREFIX + VERSION;
 
 self.addEventListener("install", function (e) {
@@ -51,22 +48,24 @@ self.addEventListener("activate", function (e) {
   );
 });
 
-self.addEventListener("fetch", function (e) {
-  console.log("fetch request : " + e.request.url);
-  e.respondWith(
-    caches.match(e.request).then(function (request) {
-      if (request) {
-        // if cache is available, respond with cache
-        console.log("responding with cache : " + e.request.url);
-        return request;
+self.addEventListener("fetch", function (event) {
+  event.respondWith(
+    caches.match(event.request).then(function (response) {
+      if (response) {
+        return response; // if valid response is found in cache return it
       } else {
-        // if there are no cache, try fetching request
-        console.log("file is not cached, fetching : " + e.request.url);
-        return fetch(e.request);
+        return fetch(event.request) //fetch from internet
+          .then(function (res) {
+            return caches.open(CACHE_NAME).then(function (cache) {
+              cache.put(event.request.url, res.clone()); //save the response for future
+              return res; // return the fetched data
+            });
+          })
+          .catch(function (err) {
+            // fallback mechanism
+            console.log(err);
+          });
       }
-
-      // You can omit if/else for console.log & put one line below like this too.
-      // return request || fetch(e.request)
     })
   );
 });
